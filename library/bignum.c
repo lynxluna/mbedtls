@@ -1440,7 +1440,7 @@ mbedtls_mpi_uint mbedtls_mpi_core_mla( mbedtls_mpi_uint *d, size_t d_len,
 int mbedtls_mpi_mul_mpi( mbedtls_mpi *X, const mbedtls_mpi *A, const mbedtls_mpi *B )
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    size_t i, j;
+    size_t i, j, k;
     mbedtls_mpi TA, TB;
     int result_is_zero = 0;
     MPI_VALIDATE_RET( X != NULL );
@@ -1467,7 +1467,7 @@ int mbedtls_mpi_mul_mpi( mbedtls_mpi *X, const mbedtls_mpi *A, const mbedtls_mpi
     MBEDTLS_MPI_CHK( mbedtls_mpi_grow( X, i + j ) );
     MBEDTLS_MPI_CHK( mbedtls_mpi_lset( X, 0 ) );
 
-    for( size_t k = 0; k < j; k++ )
+    for(k = 0; k < j; k++ )
     {
         /* We know that there cannot be any carry-out since we're
          * iterating from bottom to top. */
@@ -1497,10 +1497,13 @@ cleanup:
  */
 int mbedtls_mpi_mul_int( mbedtls_mpi *X, const mbedtls_mpi *A, mbedtls_mpi_uint b )
 {
+    size_t n;
+    int ret;
+
     MPI_VALIDATE_RET( X != NULL );
     MPI_VALIDATE_RET( A != NULL );
 
-    size_t n = A->n;
+    n = A->n;
     while( n > 0 && A->p[n - 1] == 0 )
         --n;
 
@@ -1509,7 +1512,7 @@ int mbedtls_mpi_mul_int( mbedtls_mpi *X, const mbedtls_mpi *A, mbedtls_mpi_uint 
         return( mbedtls_mpi_lset( X, 0 ) );
 
     /* Calculate A*b as A + A*(b-1) to take advantage of mbedtls_mpi_core_mla */
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     /* In general, A * b requires 1 limb more than b. If
      * A->p[n - 1] * b / b == A->p[n - 1], then A * b fits in the same
      * number of limbs as A and the call to grow() is not required since
@@ -1899,7 +1902,7 @@ static void mpi_montg_init( mbedtls_mpi_uint *mm, const mbedtls_mpi *N )
 static void mpi_montmul( mbedtls_mpi *A, const mbedtls_mpi *B, const mbedtls_mpi *N, mbedtls_mpi_uint mm,
                          const mbedtls_mpi *T )
 {
-    size_t n, m;
+    size_t i, n, m;
     mbedtls_mpi_uint *d;
 
     memset( T->p, 0, T->n * ciL );
@@ -1908,7 +1911,7 @@ static void mpi_montmul( mbedtls_mpi *A, const mbedtls_mpi *B, const mbedtls_mpi
     n = N->n;
     m = ( B->n < n ) ? B->n : n;
 
-    for( size_t i = 0; i < n; i++ )
+    for(i = 0; i < n; i++ )
     {
         mbedtls_mpi_uint u0, u1;
 
@@ -1983,8 +1986,9 @@ static void mpi_montred( mbedtls_mpi *A, const mbedtls_mpi *N,
 static int mpi_select( mbedtls_mpi *R, const mbedtls_mpi *T, size_t T_size, size_t idx )
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    int i;
 
-    for( size_t i = 0; i < T_size; i++ )
+    for( i = 0; i < T_size; i++ )
     {
         MBEDTLS_MPI_CHK( mbedtls_mpi_safe_cond_assign( R, &T[i],
                         (unsigned char) mbedtls_ct_size_bool_eq( i, idx ) ) );

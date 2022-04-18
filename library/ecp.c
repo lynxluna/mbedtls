@@ -1277,6 +1277,9 @@ cleanup:
  */
 static int ecp_normalize_jac( const mbedtls_ecp_group *grp, mbedtls_ecp_point *pt )
 {
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    mbedtls_mpi T;
+    
     if( MPI_ECP_CMP_INT( &pt->Z, 0 ) == 0 )
         return( 0 );
 
@@ -1288,8 +1291,6 @@ static int ecp_normalize_jac( const mbedtls_ecp_group *grp, mbedtls_ecp_point *p
 #if defined(MBEDTLS_ECP_NO_FALLBACK) && defined(MBEDTLS_ECP_NORMALIZE_JAC_ALT)
     return( MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE );
 #else
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    mbedtls_mpi T;
     mbedtls_mpi_init( &T );
 
     MPI_ECP_INV( &T,       &pt->Z );          /* T   <-          1 / Z   */
@@ -1322,6 +1323,10 @@ cleanup:
 static int ecp_normalize_jac_many( const mbedtls_ecp_group *grp,
                                    mbedtls_ecp_point *T[], size_t T_size )
 {
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t i;
+    mbedtls_mpi *c, t;
+
     if( T_size < 2 )
         return( ecp_normalize_jac( grp, *T ) );
 
@@ -1332,11 +1337,7 @@ static int ecp_normalize_jac_many( const mbedtls_ecp_group *grp,
 
 #if defined(MBEDTLS_ECP_NO_FALLBACK) && defined(MBEDTLS_ECP_NORMALIZE_JAC_MANY_ALT)
     return( MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE );
-#else
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    size_t i;
-    mbedtls_mpi *c, t;
-
+#else 
     if( ( c = mbedtls_calloc( T_size, sizeof( mbedtls_mpi ) ) ) == NULL )
         return( MBEDTLS_ERR_ECP_ALLOC_FAILED );
 
@@ -1450,6 +1451,8 @@ static int ecp_double_jac( const mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
                            const mbedtls_ecp_point *P,
                            mbedtls_mpi tmp[4] )
 {
+
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 #if defined(MBEDTLS_SELF_TEST)
     dbl_count++;
 #endif
@@ -1462,7 +1465,6 @@ static int ecp_double_jac( const mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
 #if defined(MBEDTLS_ECP_NO_FALLBACK) && defined(MBEDTLS_ECP_DOUBLE_JAC_ALT)
     return( MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE );
 #else
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 
     /* Special case for A = -3 */
     if( grp->A.p == NULL )
@@ -1550,6 +1552,13 @@ static int ecp_add_mixed( const mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
                           const mbedtls_ecp_point *P, const mbedtls_ecp_point *Q,
                           mbedtls_mpi tmp[4] )
 {
+
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    mbedtls_mpi * const X = &R->X;
+    mbedtls_mpi * const Y = &R->Y;
+    mbedtls_mpi * const Z = &R->Z;
+
+
 #if defined(MBEDTLS_SELF_TEST)
     add_count++;
 #endif
@@ -1562,15 +1571,9 @@ static int ecp_add_mixed( const mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
 #if defined(MBEDTLS_ECP_NO_FALLBACK) && defined(MBEDTLS_ECP_ADD_MIXED_ALT)
     return( MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE );
 #else
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-
     /* NOTE: Aliasing between input and output is allowed, so one has to make
      *       sure that at the point X,Y,Z are written, {P,Q}->{X,Y,Z} are no
      *       longer read from. */
-    mbedtls_mpi * const X = &R->X;
-    mbedtls_mpi * const Y = &R->Y;
-    mbedtls_mpi * const Z = &R->Z;
-
     if( !MPI_ECP_VALID( &Q->Z ) )
         return( MBEDTLS_ERR_ECP_BAD_INPUT_DATA );
 
@@ -3388,10 +3391,11 @@ int mbedtls_ecp_export(const mbedtls_ecp_keypair *key, mbedtls_ecp_group *grp,
 static int self_test_rng( void *ctx, unsigned char *out, size_t len )
 {
     static uint32_t state = 42;
+    size_t i;
 
     (void) ctx;
 
-    for( size_t i = 0; i < len; i++ )
+    for(i = 0; i < len; i++ )
     {
         state = state * 1664525u + 1013904223u;
         out[i] = (unsigned char) state;

@@ -340,6 +340,12 @@ int mbedtls_pk_verify_ext( mbedtls_pk_type_t type, const void *options,
                    const unsigned char *hash, size_t hash_len,
                    const unsigned char *sig, size_t sig_len )
 {
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_PKCS1_V21)
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    const mbedtls_pk_rsassa_pss_options *pss_opts;
+#endif
+
     PK_VALIDATE_RET( ctx != NULL );
     PK_VALIDATE_RET( ( md_alg == MBEDTLS_MD_NONE && hash_len == 0 ) ||
                      hash != NULL );
@@ -361,9 +367,6 @@ int mbedtls_pk_verify_ext( mbedtls_pk_type_t type, const void *options,
     }
 
 #if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_PKCS1_V21)
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    const mbedtls_pk_rsassa_pss_options *pss_opts;
-
 #if SIZE_MAX > UINT_MAX
     if( md_alg == MBEDTLS_MD_NONE && UINT_MAX < hash_len )
         return( MBEDTLS_ERR_PK_BAD_INPUT_DATA );
