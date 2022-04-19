@@ -93,8 +93,9 @@ const unsigned char key_bytes[32] = { 0x2a };
 /* Print the contents of a buffer in hex */
 void print_buf( const char *title, unsigned char *buf, size_t len )
 {
+    size_t i = 0;
     printf( "%s:", title );
-    for( size_t i = 0; i < len; i++ )
+    for( i = 0; i < len; i++ )
         printf( " %02x", buf[i] );
     printf( "\n" );
 }
@@ -126,7 +127,7 @@ static int aead_prepare( const char *info,
                            mbedtls_cipher_context_t *ctx,
                            size_t *tag_len )
 {
-    int ret;
+    int ret, key_len;
 
     /* Convert arg to type + tag_len */
     mbedtls_cipher_type_t type;
@@ -152,7 +153,7 @@ static int aead_prepare( const char *info,
                                mbedtls_cipher_info_from_type( type ) ) );
 
     /* Import key */
-    int key_len = mbedtls_cipher_get_key_bitlen( ctx );
+    key_len = mbedtls_cipher_get_key_bitlen( ctx );
     CHK( mbedtls_cipher_setkey( ctx, key_bytes, key_len, MBEDTLS_ENCRYPT ) );
 
 exit:
@@ -252,14 +253,14 @@ exit:
  */
 int main( int argc, char **argv )
 {
+    int ret;
+
     /* Check usage */
     if( argc != 2 )
     {
         puts( usage );
         return( 1 );
     }
-
-    int ret;
 
     /* Run the demo */
     CHK( aead_demo( argv[1] ) );

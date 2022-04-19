@@ -522,6 +522,16 @@ int mbedtls_ssl_encrypt_buf( mbedtls_ssl_context *ssl,
                              int (*f_rng)(void *, unsigned char *, size_t),
                              void *p_rng )
 {
+#if defined(MBEDTLS_SSL_PROTO_TLS1_2)
+        unsigned char mac[MBEDTLS_SSL_MAC_ADD];
+        int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+#if defined(MBEDTLS_USE_PSA_CRYPTO)
+        psa_mac_operation_t operation = PSA_MAC_OPERATION_INIT;
+        psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+        size_t sign_mac_length = 0;
+#endif
+#endif
+
 #if !defined(MBEDTLS_USE_PSA_CRYPTO)
     mbedtls_cipher_mode_t mode;
 #endif /* MBEDTLS_USE_PSA_CRYPTO */
@@ -670,15 +680,8 @@ int mbedtls_ssl_encrypt_buf( mbedtls_ssl_context *ssl,
             MBEDTLS_SSL_DEBUG_MSG( 1, ( "Buffer provided for encrypted record not large enough" ) );
             return( MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL );
         }
-#if defined(MBEDTLS_SSL_PROTO_TLS1_2)
-        unsigned char mac[MBEDTLS_SSL_MAC_ADD];
-        int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-#if defined(MBEDTLS_USE_PSA_CRYPTO)
-        psa_mac_operation_t operation = PSA_MAC_OPERATION_INIT;
-        psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
-        size_t sign_mac_length = 0;
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
 
+#if defined(MBEDTLS_SSL_PROTO_TLS1_2) 
         ssl_extract_add_data_from_record( add_data, &add_data_len, rec,
                                           transform->minor_ver,
                                           transform->taglen );
@@ -1138,6 +1141,26 @@ int mbedtls_ssl_decrypt_buf( mbedtls_ssl_context const *ssl,
                              mbedtls_record *rec )
 {
     size_t olen;
+
+#if defined(MBEDTLS_SSL_PROTO_TLS1_2)
+        /* The padding check involves a series of up to 256
+            * consecutive memory reads at the end of the record
+            * plaintext buffer. In order to hide the length and
+            * validity of the padding, always perform exactly
+            * `min(256,plaintext_len)` reads (but take into account
+            * only the last `padlen` bytes for the padding check). */
+        size_t pad_count = 0;
+        volatile unsigned char* check;
+
+        /* Index of first padding byte; it has been ensured above
+            * that the subtraction is safe. */
+        size_t padding_idx;
+        size_t num_checks;
+        size_t start_idx;
+        size_t idx;
+        size_t max_len, min_len;
+#endif
+
 #if defined(MBEDTLS_USE_PSA_CRYPTO)
     int ret;
 
@@ -1624,15 +1647,14 @@ int mbedtls_ssl_decrypt_buf( mbedtls_ssl_context const *ssl,
             * validity of the padding, always perform exactly
             * `min(256,plaintext_len)` reads (but take into account
             * only the last `padlen` bytes for the padding check). */
-        size_t pad_count = 0;
-        volatile unsigned char* const check = data;
+        pad_count = 0;
+        check = data;
 
         /* Index of first padding byte; it has been ensured above
             * that the subtraction is safe. */
-        size_t const padding_idx = rec->data_len - padlen;
-        size_t const num_checks = rec->data_len <= 256 ? rec->data_len : 256;
-        size_t const start_idx = rec->data_len - num_checks;
-        size_t idx;
+        padding_idx = rec->data_len - padlen;
+        num_checks = rec->data_len <= 256 ? rec->data_len : 256;
+        start_idx = rec->data_len - num_checks;
 
         for( idx = start_idx; idx < rec->data_len; idx++ )
         {
@@ -1711,8 +1733,8 @@ int mbedtls_ssl_decrypt_buf( mbedtls_ssl_context const *ssl,
             * Note that max_len + maclen is never more than the buffer
             * length, as we previously did in_msglen -= maclen too.
             */
-        const size_t max_len = rec->data_len + padlen;
-        const size_t min_len = ( max_len > 256 ) ? max_len - 256 : 0;
+        max_len = rec->data_len + padlen;
+        min_len = ( max_len > 256 ) ? max_len - 256 : 0;
 
 #if defined(MBEDTLS_USE_PSA_CRYPTO)
         ret = mbedtls_ct_hmac( transform->psa_mac_dec,

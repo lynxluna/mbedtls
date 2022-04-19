@@ -92,6 +92,7 @@ void rng_init( rng_context_t *rng )
 
 int rng_seed( rng_context_t *rng, int reproducible, const char *pers )
 {
+    int ret;
 #if defined(MBEDTLS_USE_PSA_CRYPTO)
     if( reproducible )
     {
@@ -119,7 +120,7 @@ int rng_seed( rng_context_t *rng, int reproducible, const char *pers )
         srand( 1 );
 
 #if defined(MBEDTLS_CTR_DRBG_C)
-    int ret = mbedtls_ctr_drbg_seed( &rng->drbg,
+    ret = mbedtls_ctr_drbg_seed( &rng->drbg,
                                      f_entropy, &rng->entropy,
                                      (const unsigned char *) pers,
                                      strlen( pers ) );

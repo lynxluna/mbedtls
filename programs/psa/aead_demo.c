@@ -96,8 +96,9 @@ const unsigned char key_bytes[32] = { 0x2a };
 /* Print the contents of a buffer in hex */
 void print_buf( const char *title, uint8_t *buf, size_t len )
 {
+    size_t i = 0;
     printf( "%s:", title );
-    for( size_t i = 0; i < len; i++ )
+    for( i = 0; i < len; i++ )
         printf( " %02x", buf[i] );
     printf( "\n" );
 }
@@ -131,6 +132,7 @@ static psa_status_t aead_prepare( const char *info,
                                   psa_algorithm_t *alg )
 {
     psa_status_t status;
+    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
 
     /* Convert arg to alg + key_bits + key_type */
     size_t key_bits;
@@ -157,7 +159,6 @@ static psa_status_t aead_prepare( const char *info,
     }
 
     /* Prepare key attibutes */
-    psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_set_key_usage_flags( &attributes, PSA_KEY_USAGE_ENCRYPT );
     psa_set_key_algorithm( &attributes, *alg );
     psa_set_key_type( &attributes, key_type );
@@ -179,16 +180,23 @@ exit:
 static void aead_info( psa_key_id_t key, psa_algorithm_t alg )
 {
     psa_key_attributes_t attr = PSA_KEY_ATTRIBUTES_INIT;
-    (void) psa_get_key_attributes( key, &attr );
-    psa_key_type_t key_type = psa_get_key_type( &attr );
-    size_t key_bits = psa_get_key_bits( &attr );
-    psa_algorithm_t base_alg = PSA_ALG_AEAD_WITH_DEFAULT_LENGTH_TAG( alg );
-    size_t tag_len = PSA_AEAD_TAG_LENGTH( key_type, key_bits, alg );
+    psa_key_type_t key_type;
+    size_t key_bits;
+    psa_algorithm_t base_alg;
+    size_t tag_len;
 
-    const char *type_str = key_type == PSA_KEY_TYPE_AES ? "AES"
+    const char *type_str, *base_str;
+
+    (void) psa_get_key_attributes( key, &attr );
+    key_type = psa_get_key_type( &attr );
+    key_bits = psa_get_key_bits( &attr );
+    base_alg = PSA_ALG_AEAD_WITH_DEFAULT_LENGTH_TAG( alg );
+    tag_len = PSA_AEAD_TAG_LENGTH( key_type, key_bits, alg );
+
+    type_str = key_type == PSA_KEY_TYPE_AES ? "AES"
                          : key_type == PSA_KEY_TYPE_CHACHA20 ? "Chacha"
                          : "???";
-    const char *base_str = base_alg == PSA_ALG_GCM ? "GCM"
+    base_str = base_alg == PSA_ALG_GCM ? "GCM"
                          : base_alg == PSA_ALG_CHACHA20_POLY1305 ? "ChachaPoly"
                          : "???";
 

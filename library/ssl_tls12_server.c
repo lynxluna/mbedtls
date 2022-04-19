@@ -955,7 +955,7 @@ static int ssl_pick_cert( mbedtls_ssl_context *ssl,
     mbedtls_pk_type_t pk_alg =
         mbedtls_ssl_get_ciphersuite_sig_pk_alg( ciphersuite_info );
     uint32_t flags;
-
+ 
 #if defined(MBEDTLS_SSL_SERVER_NAME_INDICATION)
     if( ssl->handshake->sni_key_cert != NULL )
         list = ssl->handshake->sni_key_cert;
@@ -1137,6 +1137,8 @@ static int ssl_parse_client_hello( mbedtls_ssl_context *ssl )
     size_t i, j;
     size_t ciph_offset, comp_offset, ext_offset;
     size_t msg_len, ciph_len, sess_len, comp_len, ext_len;
+    mbedtls_pk_type_t sig_alg; 
+
 #if defined(MBEDTLS_SSL_PROTO_DTLS)
     size_t cookie_offset, cookie_len;
 #endif
@@ -1922,7 +1924,7 @@ have_ciphersuite:
     /* Debugging-only output for testsuite */
 #if defined(MBEDTLS_DEBUG_C)                         && \
     defined(MBEDTLS_KEY_EXCHANGE_WITH_CERT_ENABLED)
-    mbedtls_pk_type_t sig_alg = mbedtls_ssl_get_ciphersuite_sig_alg( ciphersuite_info );
+    sig_alg = mbedtls_ssl_get_ciphersuite_sig_alg( ciphersuite_info );
     if( sig_alg != MBEDTLS_PK_NONE )
     {
         mbedtls_md_type_t md_alg = mbedtls_ssl_sig_hash_set_find( &ssl->handshake->hash_algs,
@@ -2701,6 +2703,7 @@ static int ssl_write_certificate_request( mbedtls_ssl_context *ssl )
     const unsigned char * const end = ssl->out_msg + MBEDTLS_SSL_OUT_CONTENT_LEN;
     const mbedtls_x509_crt *crt;
     int authmode;
+    const uint16_t *sig_alg; 
 
     MBEDTLS_SSL_DEBUG_MSG( 2, ( "=> write certificate request" ) );
 
@@ -2768,7 +2771,7 @@ static int ssl_write_certificate_request( mbedtls_ssl_context *ssl )
      *     enum { (255) } HashAlgorithm;
      *     enum { (255) } SignatureAlgorithm;
      */
-    const uint16_t *sig_alg = mbedtls_ssl_get_sig_algs( ssl );
+    sig_alg = mbedtls_ssl_get_sig_algs( ssl );
     if( sig_alg == NULL )
         return( MBEDTLS_ERR_SSL_BAD_CONFIG );
 
@@ -3002,6 +3005,7 @@ static int ssl_prepare_server_key_exchange( mbedtls_ssl_context *ssl,
 {
     const mbedtls_ssl_ciphersuite_t *ciphersuite_info =
         ssl->handshake->ciphersuite_info;
+    size_t out_buf_len;
 
 #if defined(MBEDTLS_KEY_EXCHANGE_SOME_PFS_ENABLED)
 #if defined(MBEDTLS_KEY_EXCHANGE_WITH_SERVER_SIGNATURE_ENABLED)
@@ -3016,9 +3020,9 @@ static int ssl_prepare_server_key_exchange( mbedtls_ssl_context *ssl,
 
 #if defined(MBEDTLS_KEY_EXCHANGE_WITH_SERVER_SIGNATURE_ENABLED)
 #if defined(MBEDTLS_SSL_VARIABLE_BUFFER_LENGTH)
-    size_t out_buf_len = ssl->out_buf_len - ( ssl->out_msg - ssl->out_buf );
+    out_buf_len = ssl->out_buf_len - ( ssl->out_msg - ssl->out_buf );
 #else
-    size_t out_buf_len = MBEDTLS_SSL_OUT_BUFFER_LEN - ( ssl->out_msg - ssl->out_buf );
+    out_buf_len = MBEDTLS_SSL_OUT_BUFFER_LEN - ( ssl->out_msg - ssl->out_buf );
 #endif
 #endif
 

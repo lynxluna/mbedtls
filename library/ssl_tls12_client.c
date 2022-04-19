@@ -2590,7 +2590,7 @@ static int ssl_parse_certificate_request( mbedtls_ssl_context *ssl )
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     unsigned char *buf;
-    size_t n = 0;
+    size_t n = 0, i;
     size_t cert_type_len = 0, dn_len = 0;
     const mbedtls_ssl_ciphersuite_t *ciphersuite_info =
         ssl->handshake->ciphersuite_info;
@@ -2721,7 +2721,7 @@ static int ssl_parse_certificate_request( mbedtls_ssl_context *ssl )
 
 #if defined(MBEDTLS_DEBUG_C)
     sig_alg = buf + mbedtls_ssl_hs_hdr_len( ssl ) + 3 + n;
-    for( size_t i = 0; i < sig_alg_len; i += 2 )
+    for( i = 0; i < sig_alg_len; i += 2 )
     {
         MBEDTLS_SSL_DEBUG_MSG( 3,
             ( "Supported Signature Algorithm found: %d,%d",

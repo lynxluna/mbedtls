@@ -71,8 +71,9 @@ const unsigned char key_bytes[32] = { 0 };
 /* Print the contents of a buffer in hex */
 void print_buf( const char *title, unsigned char *buf, size_t len )
 {
+    size_t i = 0;
     printf( "%s:", title );
-    for( size_t i = 0; i < len; i++ )
+    for( i = 0; i < len; i++ )
         printf( " %02x", buf[i] );
     printf( "\n" );
 }
@@ -103,6 +104,8 @@ int hmac_demo(void)
     int ret;
     const mbedtls_md_type_t alg = MBEDTLS_MD_SHA256;
     unsigned char out[MBEDTLS_MD_MAX_SIZE]; // safe but not optimal
+    const mbedtls_md_info_t *info = mbedtls_md_info_from_type( alg );
+
 
     mbedtls_md_context_t ctx;
 
@@ -110,7 +113,6 @@ int hmac_demo(void)
 
     /* prepare context and load key */
     // the last argument to setup is 1 to enable HMAC (not just hashing)
-    const mbedtls_md_info_t *info = mbedtls_md_info_from_type( alg );
     CHK( mbedtls_md_setup( &ctx, info, 1 ) );
     CHK( mbedtls_md_hmac_starts( &ctx, key_bytes, sizeof( key_bytes ) ) );
 

@@ -73,8 +73,9 @@ const unsigned char key_bytes[32] = { 0 };
 /* Print the contents of a buffer in hex */
 void print_buf( const char *title, uint8_t *buf, size_t len )
 {
+    size_t i = 0;
     printf( "%s:", title );
-    for( size_t i = 0; i < len; i++ )
+    for( i = 0; i < len; i++ )
         printf( " %02x", buf[i] );
     printf( "\n" );
 }
@@ -106,6 +107,12 @@ psa_status_t hmac_demo(void)
     psa_status_t status;
     const psa_algorithm_t alg = PSA_ALG_HMAC(PSA_ALG_SHA_256);
     uint8_t out[PSA_MAC_MAX_SIZE]; // safe but not optimal
+    
+    /* prepare operation */
+    psa_mac_operation_t op = PSA_MAC_OPERATION_INIT;
+    size_t out_len = 0;
+
+
     /* PSA_MAC_LENGTH(PSA_KEY_TYPE_HMAC, 8 * sizeof( key_bytes ), alg)
      * should work but see https://github.com/Mbed-TLS/mbedtls/issues/4320 */
 
@@ -123,10 +130,7 @@ psa_status_t hmac_demo(void)
     if( status != PSA_SUCCESS )
         return( status );
 
-    /* prepare operation */
-    psa_mac_operation_t op = PSA_MAC_OPERATION_INIT;
-    size_t out_len = 0;
-
+    
     /* compute HMAC(key, msg1_part1 | msg1_part2) */
     PSA_CHECK( psa_mac_sign_setup( &op, key, alg ) );
     PSA_CHECK( psa_mac_update( &op, msg1_part1, sizeof( msg1_part1 ) ) );

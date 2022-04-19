@@ -136,6 +136,7 @@ static int ssl_write_alpn_ext( mbedtls_ssl_context *ssl,
                                size_t *out_len )
 {
     unsigned char *p = buf;
+    const char ** cur;
 
     *out_len = 0;
 
@@ -160,7 +161,7 @@ static int ssl_write_alpn_ext( mbedtls_ssl_context *ssl,
      *     ProtocolName protocol_name_list<2..2^16-1>
      * } ProtocolNameList;
      */
-    for( const char **cur = ssl->conf->alpn_list; *cur != NULL; cur++ )
+    for( cur = ssl->conf->alpn_list; *cur != NULL; cur++ )
     {
         /*
          * mbedtls_ssl_conf_set_alpn_protocols() checked that the length of
@@ -357,6 +358,7 @@ static int ssl_write_sig_alg_ext( mbedtls_ssl_context *ssl, unsigned char *buf,
     unsigned char *p = buf;
     unsigned char *supported_sig_alg; /* Start of supported_signature_algorithms */
     size_t supported_sig_alg_len = 0; /* Length of supported_signature_algorithms */
+    const uint16_t * sig_alg;
 
     *out_len = 0;
 
@@ -374,7 +376,7 @@ static int ssl_write_sig_alg_ext( mbedtls_ssl_context *ssl, unsigned char *buf,
      * Write supported_signature_algorithms
      */
     supported_sig_alg = p;
-    const uint16_t *sig_alg = mbedtls_ssl_get_sig_algs( ssl );
+    sig_alg = mbedtls_ssl_get_sig_algs( ssl );
     if( sig_alg == NULL )
         return( MBEDTLS_ERR_SSL_BAD_CONFIG );
 
@@ -461,7 +463,7 @@ static int ssl_write_client_hello_cipher_suites(
     unsigned char *p = buf;
     const int *ciphersuite_list;
     unsigned char *cipher_suites; /* Start of the cipher_suites list */
-    size_t cipher_suites_len;
+    size_t cipher_suites_len, i;
 
     *tls12_uses_ec = 0;
     *out_len = 0;
@@ -484,7 +486,7 @@ static int ssl_write_client_hello_cipher_suites(
      * CipherSuite cipher_suites<2..2^16-2>;
      */
     cipher_suites = p;
-    for ( size_t i = 0; ciphersuite_list[i] != 0; i++ )
+    for ( i = 0; ciphersuite_list[i] != 0; i++ )
     {
         int cipher_suite = ciphersuite_list[i];
         const mbedtls_ssl_ciphersuite_t *ciphersuite_info;
@@ -580,16 +582,24 @@ static int ssl_write_client_hello_body( mbedtls_ssl_context *ssl,
     size_t extensions_len;           /* Length of the list of extensions*/
     int tls12_uses_ec = 0;
 
+#if defined(MBEDTLS_SSL_PROTO_TLS1_2)
+    unsigned char propose_tls12;
+#endif
+
+#if defined(MBEDTLS_SSL_PROTO_TLS1_3)
+    unsigned char propose_tls13;
+#endif
+
     *out_len = 0;
 
 #if defined(MBEDTLS_SSL_PROTO_TLS1_2)
-    unsigned char propose_tls12 =
+    propose_tls12 =
         ( handshake->min_minor_ver <= MBEDTLS_SSL_MINOR_VERSION_3 )
         &&
         ( MBEDTLS_SSL_MINOR_VERSION_3 <= ssl->minor_ver );
 #endif
 #if defined(MBEDTLS_SSL_PROTO_TLS1_3)
-    unsigned char propose_tls13 =
+    propose_tls13 =
         ( handshake->min_minor_ver <= MBEDTLS_SSL_MINOR_VERSION_4 )
         &&
         ( MBEDTLS_SSL_MINOR_VERSION_4 <= ssl->minor_ver );

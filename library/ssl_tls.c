@@ -763,16 +763,18 @@ static int ssl_handshake_init( mbedtls_ssl_context *ssl )
     {
         size_t length;
         const mbedtls_ecp_group_id *curve_list = ssl->conf->curve_list;
+        uint16_t *group_list;
+        size_t i;
 
         for( length = 0;  ( curve_list[length] != MBEDTLS_ECP_DP_NONE ) &&
                           ( length < MBEDTLS_ECP_DP_MAX ); length++ ) {}
 
         /* Leave room for zero termination */
-        uint16_t *group_list = mbedtls_calloc( length + 1, sizeof(uint16_t) );
+        group_list = mbedtls_calloc( length + 1, sizeof(uint16_t) );
         if ( group_list == NULL )
             return( MBEDTLS_ERR_SSL_ALLOC_FAILED );
 
-        for( size_t i = 0; i < length; i++ )
+        for(i = 0; i < length; i++ )
         {
             const mbedtls_ecp_curve_info *info =
                         mbedtls_ecp_curve_info_from_grp_id( curve_list[i] );
